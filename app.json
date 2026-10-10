@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Quick Reminder",
+    "slug": "android-reminder",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.pintu.quickreminder",
+      "permissions": ["SCHEDULE_EXACT_ALARM", "POST_NOTIFICATIONS"]
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "timers"
+        }
+      ]
+    ]
+  }
+}
