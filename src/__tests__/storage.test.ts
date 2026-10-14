@@ -1,6 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { loadPresets, loadTimers, savePresets, saveTimers } from '../storage';
+import {
+  loadPresets,
+  loadThemeChoice,
+  loadTimers,
+  savePresets,
+  saveThemeChoice,
+  saveTimers,
+} from '../storage';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual(
@@ -39,6 +46,23 @@ describe('presets storage', () => {
     },
   );
 
+  it('keeps a default time on a preset', async () => {
+    const saved = [{ id: 'pump', label: 'Pump', defaultMinutes: 6 }];
+
+    await savePresets(saved);
+
+    expect(await loadPresets()).toEqual(saved);
+  });
+
+  it('skips a preset whose default time is not a number', async () => {
+    await AsyncStorage.setItem(
+      'presets',
+      JSON.stringify([{ id: 'a', label: 'Tea', defaultMinutes: 'six' }]),
+    );
+
+    expect(await loadPresets()).toEqual([]);
+  });
+
   it('skips saved items of the wrong shape', async () => {
     await AsyncStorage.setItem(
       'presets',
@@ -74,4 +98,29 @@ describe('timers storage', () => {
       expect(await loadTimers()).toEqual([]);
     },
   );
+});
+
+describe('theme choice storage', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+  });
+
+  it('follows the phone when nothing is saved', async () => {
+    expect(await loadThemeChoice()).toBe('system');
+  });
+
+  it.each(['light', 'dark', 'system'] as const)(
+    'returns the saved %s choice',
+    async (choice) => {
+      await saveThemeChoice(choice);
+
+      expect(await loadThemeChoice()).toBe(choice);
+    },
+  );
+
+  it('falls back to the phone setting for unknown saved values', async () => {
+    await AsyncStorage.setItem('themeChoice', 'purple');
+
+    expect(await loadThemeChoice()).toBe('system');
+  });
 });

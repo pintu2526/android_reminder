@@ -3,7 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export type Preset = {
   id: string;
   label: string;
+  defaultMinutes?: number;
 };
+
+// 'system' follows the phone's light or dark setting.
+export type ThemeChoice = 'system' | 'light' | 'dark';
 
 export type StoredTimer = {
   id: string;
@@ -13,6 +17,7 @@ export type StoredTimer = {
 
 const PRESETS_KEY = 'presets';
 const TIMERS_KEY = 'timers';
+const THEME_KEY = 'themeChoice';
 
 const DEFAULT_PRESETS: Preset[] = [
   { id: 'milk', label: 'Milk on stove' },
@@ -23,7 +28,12 @@ const DEFAULT_PRESETS: Preset[] = [
 
 function isPreset(value: unknown): value is Preset {
   const preset = value as Preset;
-  return typeof preset?.id === 'string' && typeof preset.label === 'string';
+  return (
+    typeof preset?.id === 'string' &&
+    typeof preset.label === 'string' &&
+    (preset.defaultMinutes === undefined ||
+      typeof preset.defaultMinutes === 'number')
+  );
 }
 
 export async function loadPresets(): Promise<Preset[]> {
@@ -66,4 +76,13 @@ export async function loadTimers(): Promise<StoredTimer[]> {
 
 export async function saveTimers(timers: StoredTimer[]): Promise<void> {
   await AsyncStorage.setItem(TIMERS_KEY, JSON.stringify(timers));
+}
+
+export async function loadThemeChoice(): Promise<ThemeChoice> {
+  const stored = await AsyncStorage.getItem(THEME_KEY);
+  return stored === 'light' || stored === 'dark' ? stored : 'system';
+}
+
+export async function saveThemeChoice(choice: ThemeChoice): Promise<void> {
+  await AsyncStorage.setItem(THEME_KEY, choice);
 }

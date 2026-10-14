@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import {
   AlarmPermissions,
@@ -6,6 +6,9 @@ import {
   openFullScreenSettings,
   openNotificationSettings,
 } from './alarms';
+import Button from './ui/Button';
+import Dialog from './ui/Dialog';
+import { layout, useTheme } from './ui/theme';
 
 type Props = {
   visible: boolean;
@@ -18,83 +21,94 @@ export default function AlarmPermissionsModal({
   permissions,
   onClose,
 }: Props) {
+  const { colors } = useTheme();
   const rows = permissions && [
     {
       name: 'Notifications',
+      hint: 'Shows the Stop button when a timer rings.',
       enabled: permissions.notifications,
       open: openNotificationSettings,
     },
     {
-      name: 'Exact alarms ("Alarms & reminders")',
+      name: 'Exact alarms',
+      hint: 'Called "Alarms & reminders" in Settings. Lets timers ring on time.',
       enabled: permissions.exactAlarms,
       open: openExactAlarmSettings,
     },
     {
       name: 'Full-screen alerts',
+      hint: 'Lets the ring screen open over the lock screen.',
       enabled: permissions.fullScreen,
       open: openFullScreenSettings,
     },
   ];
 
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.backdrop}>
-        <View style={styles.dialog}>
-          <Text style={styles.title}>Alarm permissions</Text>
-          {rows?.map((row) => (
-            <View key={row.name} style={styles.row}>
-              <View style={styles.rowText}>
-                <Text style={styles.name}>{row.name}</Text>
-                <Text style={row.enabled ? styles.on : styles.off}>
-                  {row.enabled ? 'On' : 'Off'}
-                </Text>
-              </View>
-              {!row.enabled && (
-                <Pressable onPress={row.open} style={styles.button}>
-                  <Text style={styles.buttonText}>Open settings</Text>
-                </Pressable>
-              )}
-            </View>
-          ))}
-          <Pressable onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.buttonText}>Close</Text>
-          </Pressable>
+    <Dialog visible={visible} title="Alarm permissions" onClose={onClose}>
+      {rows?.map((row) => (
+        <View
+          key={row.name}
+          style={[styles.row, { backgroundColor: colors.surfaceAlt }]}
+        >
+          <View style={styles.rowHeader}>
+            <Text style={[styles.name, { color: colors.text }]}>
+              {row.name}
+            </Text>
+            <Text
+              style={[
+                styles.status,
+                row.enabled
+                  ? {
+                      color: colors.onSuccessSoft,
+                      backgroundColor: colors.successSoft,
+                    }
+                  : {
+                      color: colors.onDangerSoft,
+                      backgroundColor: colors.dangerSoft,
+                    },
+              ]}
+            >
+              {row.enabled ? '✓ On' : '⚠ Off'}
+            </Text>
+          </View>
+          <Text style={[styles.hint, { color: colors.textMuted }]}>
+            {row.hint}
+          </Text>
+          {!row.enabled && (
+            <Button
+              label="Open settings"
+              variant="primary"
+              onPress={row.open}
+              accessibilityLabel={`Open settings for ${row.name}`}
+            />
+          )}
         </View>
-      </View>
-    </Modal>
+      ))}
+      <Button label="Close" onPress={onClose} />
+    </Dialog>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    padding: 24,
+  row: {
+    borderRadius: layout.radius,
+    padding: layout.space.l,
+    gap: layout.space.s,
   },
-  dialog: { backgroundColor: '#fff', borderRadius: 16, padding: 20, gap: 16 },
-  title: { fontSize: 20, fontWeight: '600' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rowText: { flex: 1 },
-  name: { fontSize: 16 },
-  on: { color: '#1b7f3b' },
-  off: { color: '#b00020' },
-  button: {
-    backgroundColor: '#e8eaf0',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  closeButton: {
-    backgroundColor: '#e8eaf0',
-    borderRadius: 12,
-    paddingVertical: 12,
+  rowHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: layout.space.m,
   },
-  buttonText: { fontSize: 16 },
+  name: { flexShrink: 1, fontSize: layout.font.bodyLarge, fontWeight: '700' },
+  status: {
+    fontSize: layout.font.body,
+    fontWeight: '700',
+    paddingHorizontal: layout.space.m,
+    paddingVertical: layout.space.xs,
+    borderRadius: layout.radius,
+    overflow: 'hidden',
+  },
+  hint: { fontSize: layout.font.body },
 });

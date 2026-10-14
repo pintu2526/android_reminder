@@ -12,6 +12,19 @@ export function stillPending(
   return timers.filter((timer) => timer.ringAt > now);
 }
 
+// Saved timers plus the ones already in memory, each id listed once.
+export function mergeTimers(
+  saved: StoredTimer[],
+  current: StoredTimer[],
+  now = Date.now(),
+): StoredTimer[] {
+  const byId = new Map<string, StoredTimer>();
+  for (const timer of [...stillPending(saved, now), ...current]) {
+    byId.set(timer.id, timer);
+  }
+  return [...byId.values()];
+}
+
 export function useActiveTimers() {
   const [timers, setTimers] = useState<StoredTimer[]>([]);
   const latest = useRef<StoredTimer[]>([]);
@@ -32,7 +45,7 @@ export function useActiveTimers() {
   useEffect(() => {
     // Merge, so a timer added before the load finished is not lost.
     loadTimers()
-      .then((saved) => update([...stillPending(saved), ...latest.current]))
+      .then((saved) => update(mergeTimers(saved, latest.current)))
       .catch((error) => console.error('Could not load timers', error));
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') dropFinished();

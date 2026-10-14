@@ -17,8 +17,9 @@ export type AlarmPermissions = {
 export async function scheduleTimer(
   label: string,
   minutes: number,
+  from = new Date(),
 ): Promise<ScheduledTimer> {
-  const ringAt = new Date(Date.now() + minutes * 60 * 1000);
+  const ringAt = new Date(from.getTime() + minutes * 60 * 1000);
   const id = AlarmRing.scheduleAlarm(label, ringAt.getTime());
   return { id, ringAt };
 }

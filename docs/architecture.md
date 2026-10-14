@@ -3,11 +3,17 @@
 ## JavaScript (`src/`)
 
 - `App.tsx`: thin shell that renders `TimerScreen`.
-- `src/TimerScreen.tsx`: the two-tap flow. A ☰ menu at the top left holds "Add new preset" and "Alarm permissions". Tap a preset, then +1, +2, +5 or +10 minutes, or type custom minutes. Long-press a preset to delete it. Shows when the timer rings, an "Active timers" list with a Cancel button for each pending timer, and a warning if any alarm permission is off.
-- `src/AddPresetModal.tsx`: the popup with a name field, opened from the menu.
-- `src/AlarmPermissionsModal.tsx`: shows On/Off for notifications, exact alarms and full-screen alerts, with an "Open settings" button for each one that is off.
+- `src/TimerScreen.tsx`: the main screen and all timer logic. Header with the title and a Menu button ("Alarm permissions"); a tappable warning card if any alarm permission is off; one card per preset; the docked timer panel; the Active timers list; and a round floating "+" button at the bottom right that opens the new-preset popup (hidden while a preset is selected). Tap a preset, then +1, +2, +5 or +10 minutes; each tap adds to the same timer. A preset with a default time starts that timer when tapped.
+- `src/PresetRow.tsx`: one preset card (name, default-time pill, selected state) with a labelled Edit button next to it.
+- `src/ThemePicker.tsx`, `src/useThemeChoice.ts`: the Dark / Light / Phone buttons in the Menu. The choice is stored under `themeChoice` in AsyncStorage and applied at startup with `Appearance.setColorScheme`.
+- `src/TimerPanel.tsx`: the panel docked at the bottom of the screen while a preset is selected: the countdown, "Add minutes" with −1/+1/+2/+5/+10, and Reset. After the 5-second window only the countdown stays.
+- `src/TimerDisplay.tsx`: the big live countdown (mm:ss) with the preset name, a progress bar of time left and the ring clock time. Shows a same-sized placeholder before any minutes are added. Fades in once unless "reduce motion" is on.
+- `src/ActiveTimersList.tsx`: the card listing pending timers, each with a Cancel button.
+- `src/PresetModal.tsx`: the popup for a new or an existing preset: name, optional default minutes, and Delete when editing.
+- `src/AlarmPermissionsModal.tsx`: shows On/Off for notifications, exact alarms and full-screen alerts, each with a short explanation and an "Open settings" button when off.
+- `src/ui/`: the design system: `theme.ts` (light/dark colours, sizes, shadows, `useTheme`), `Button.tsx` and `Dialog.tsx`. See `docs/design.md`.
 - `src/useAlarmPermissions.ts`: asks for the notification permission on start and re-checks all three permissions whenever the app returns to the foreground.
-- `src/CustomMinutesInput.tsx` and `src/minutes.ts`: typed minutes, validated as a whole number from 1 to 1440.
+- `src/minutes.ts`: `parseMinutes` (whole minutes 1-1440, for the default time) and `formatRemaining` (the countdown text).
 - `src/alarms.ts`: the only file that talks to the native module and `expo-notifications`: `scheduleTimer`, `cancelTimer`, permission checks and settings shortcuts.
 - `src/useActiveTimers.ts`: keeps the pending timers (id, label, ring time) in state and in storage. It drops a timer once its ring time has passed, on app start, when the app returns to the foreground, and by a timeout for the next ring. So pressing Stop on the ring screen leaves the list empty, and several timers can be listed.
 - `src/storage.ts`: the only module that touches AsyncStorage. Loads and saves presets (defaults when nothing is saved or the data is corrupt) and active timers (empty when nothing is saved or the data is corrupt or the wrong shape).
@@ -19,19 +25,19 @@ A local Expo module written in Kotlin. Expo autolinks it, and its `AndroidManife
 - `AlarmRingModule.kt`: the functions JavaScript can call (`src/AlarmRingModule.ts` holds their types). Creates the notification channel when it loads.
 - `AlarmScheduler.kt`: schedules and cancels alarms with `AlarmManager.setAlarmClock`. Each alarm's PendingIntent is made unique by putting its id in the intent data.
 - `AlarmReceiver.kt`: wakes when an alarm fires and starts `RingService`.
-- `RingService.kt`: a foreground service of type `mediaPlayback`. Loops the phone's default alarm tone (falling back to the default ringtone or notification sound if it is missing) with alarm audio usage a CPU wake lock, and vibration if no sound can play, shows an ongoing notification with a Stop action and a full-screen intent, and stops itself after 2 minutes. A second alarm that fires while one is ringing restarts the 2 minutes and replaces the first notification.
-- `RingActivity.kt`: the plain native ringing screen (label and Stop button). It shows over the lock screen and closes when the service stops.
+- `RingService.kt`: a foreground service of type `mediaPlayback`. Loops the phone's default alarm tone (falling back to the default ringtone or notification sound if it is missing) with alarm audio usage and a CPU wake lock (and vibrates if no sound can play), shows an ongoing notification with a Stop action and a full-screen intent, and stops itself after 2 minutes. A second alarm that fires while one is ringing restarts the 2 minutes and replaces the first notification.
+- `RingActivity.kt`: the native ringing screen: the timer name, "Time's up!" and one very large full-width STOP button (120dp), light or dark with the phone. It shows over the lock screen and closes when the service stops.
 - `RingChannel.kt`: the silent notification channel shared by the module and the service.
 - `AlarmPermissions.kt`: full-screen-intent check and shortcuts to the system settings screens.
 
 ## Timer flow
 
 1. `TimerScreen` loads presets, and `useAlarmPermissions` asks for the notification permission.
-2. Tapping a minutes button calls `scheduleTimer(label, minutes)`, which asks the native module to set an exact alarm for `now + minutes`.
-3. The minute options stay visible for 5 seconds with the choice highlighted. Tapping another option cancels the first alarm and schedules a new one. After 5 seconds the options close and the timer stays scheduled and listed under Active timers, where Cancel removes it.
+2. The first tap calls `scheduleTimer(label, minutes)`, which asks the native module to set an exact alarm for `now + minutes`.
+3. The minute options stay visible for 5 seconds with the choice highlighted. Each tap adds its minutes to the running timer (the old alarm is cancelled and one is scheduled at previous ring time + minutes), and the countdown shows the new total. −1 does the same in reverse, and stops the timer if a minute or less is left. Reset cancels the timer and keeps the preset selected so it can be started again. Tapping the selected preset again hides the whole panel; the timer keeps running in the list. After 5 seconds only the +N buttons and Reset hide. The countdown stays until the timer rings, and the timer stays scheduled and listed under Active timers, where Cancel removes it and also closes the countdown panel until a preset is chosen again.
 4. When the alarm fires, even with the app closed, `AlarmReceiver` starts `RingService`, which loops the alarm tone.
 5. If the phone is locked or the screen is off, `RingActivity` opens over the lock screen. If the phone is in use, Android shows a heads-up notification instead (observed: the screen did not open while the app was in the foreground). Either way, Stop silences it.
 
 ## Not built yet
 
-Renaming presets, re-creating alarms after a reboot, and the battery-optimization exemption.
+Re-creating alarms after a reboot, and the battery-optimization exemption.
