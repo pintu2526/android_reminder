@@ -26,6 +26,15 @@ class AlarmRingModule : Module() {
       id
     }
 
+    Function("syncPresets") { presetsJson: String ->
+      PresetStore(context).savePresets(presetsJson)
+      QuickTimerWidget.updateAll(context)
+    }
+
+    Function("takeWidgetTimers") {
+      WidgetTimerStore(context).takeAll()
+    }
+
     Function("cancelAlarm") { id: String ->
       scheduler.cancel(id)
     }

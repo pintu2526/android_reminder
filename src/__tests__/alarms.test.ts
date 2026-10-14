@@ -1,7 +1,13 @@
 import * as Notifications from 'expo-notifications';
 
 import AlarmRing from '../../modules/alarm-ring';
-import { cancelTimer, getAlarmPermissions, scheduleTimer } from '../alarms';
+import {
+  cancelTimer,
+  getAlarmPermissions,
+  scheduleTimer,
+  syncWidgetPresets,
+  takeWidgetTimers,
+} from '../alarms';
 
 jest.mock('expo-notifications', () => ({
   getPermissionsAsync: jest.fn(),
@@ -11,6 +17,8 @@ jest.mock('expo-notifications', () => ({
 jest.mock('../../modules/alarm-ring', () => ({
   scheduleAlarm: jest.fn(),
   cancelAlarm: jest.fn(),
+  syncPresets: jest.fn(),
+  takeWidgetTimers: jest.fn(),
   canScheduleExactAlarms: jest.fn(),
   canUseFullScreenIntent: jest.fn(),
 }));
@@ -53,6 +61,39 @@ describe('alarms', () => {
       'Milk on stove',
       ringAt.getTime(),
     );
+  });
+
+  it('sends the presets to the native widgets as JSON', () => {
+    const presets = [{ id: 'milk', label: 'Milk on stove', defaultMinutes: 5 }];
+
+    syncWidgetPresets(presets);
+
+    expect(AlarmRing.syncPresets).toHaveBeenCalledWith(JSON.stringify(presets));
+  });
+
+  it('does not throw when the native sync fails', () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.mocked(AlarmRing.syncPresets).mockImplementation(() => {
+      throw new Error('missing');
+    });
+
+    expect(() => syncWidgetPresets([])).not.toThrow();
+  });
+
+  it('reads the timers that widgets started', () => {
+    const timers = [{ id: 'a', label: 'Tea', ringAt: 5000 }];
+    jest
+      .mocked(AlarmRing.takeWidgetTimers)
+      .mockReturnValue(JSON.stringify(timers));
+
+    expect(takeWidgetTimers()).toEqual(timers);
+  });
+
+  it('returns no widget timers when the native data is unreadable', () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.mocked(AlarmRing.takeWidgetTimers).mockReturnValue('{broken');
+
+    expect(takeWidgetTimers()).toEqual([]);
   });
 
   it('cancels a scheduled timer by id', async () => {

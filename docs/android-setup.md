@@ -31,6 +31,10 @@ Timers will not start while Notifications are off, because the Stop button and r
 
 On some phones the user must also exempt the app from battery optimization, or the system may delay or kill alarms.
 
+## Home-screen widget
+
+Widget code is native, so changes to it need a rebuild (`npm run android`). To add one: long-press the home screen, open Widgets, pick Quick Reminder's "Quick timer", then choose a preset. Only presets with a default time are listed, and the app must have been opened once so the presets are copied to the widget. Check the copy with `adb shell run-as com.pintu.quickreminder cat shared_prefs/alarmring_widgets.xml`.
+
 ## Testing on the emulator
 
 - Grant exact alarms from the command line: `adb shell cmd appops set com.pintu.quickreminder SCHEDULE_EXACT_ALARM allow`.
@@ -45,6 +49,7 @@ On some phones the user must also exempt the app from battery optimization, or t
 
 - The ringing notification channel is `ringing_timers`, created by the native module.
 - The Android package id is `com.pintu.quickreminder`. Change it in `app.json` before publishing.
+- The launch screen is a plain background (light or dark) set by the `expo-splash-screen` plugin in `app.json`. After changing it, run `npx expo prebuild --platform android --no-install` and then `npm run android`. `android/` is generated, so edits made there directly are lost.
 - Changing plugins or permissions in `app.json` requires a rebuild.
 
 ## Known issue

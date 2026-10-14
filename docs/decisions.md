@@ -111,3 +111,15 @@ Cancelling the running timer from the Active timers list also deselects its pres
 ## Theme choice uses Appearance.setColorScheme
 
 The Menu lets the user pick Dark, Light or Phone (follow the phone). The choice is applied with React Native's `Appearance.setColorScheme`, which overrides the colour scheme for the whole app, so `useTheme()` and the status bar needed no changes and no context provider was added. In React Native 0.86 "follow the phone" is the value `'unspecified'`, not `null`. The native ring screen is a plain Android activity and keeps following the phone's setting.
+
+## Home-screen widget: one widget per preset
+
+A widget is native Android UI (`AppWidgetProvider` and `RemoteViews`), so it lives in the `alarm-ring` module. Each widget is a single big button for one preset, picked when the widget is added; only presets with a default time are offered, because one tap needs a duration. Tapping starts the timer from a broadcast receiver, so the app does not open and JavaScript does not need to be running. A tap starts a new timer, but a second tap on the same widget within 10 seconds is ignored with an "already started" toast, because it is almost always a mistake and cancelling means opening the app, which defeats the widget. The window is a fixed time rather than "while a timer is running", so two real timers of the same preset (two laundry loads) are still possible, and it only starts after a successful start so a failed tap can be retried at once. The widget cannot read AsyncStorage, so the app copies the presets into `SharedPreferences` whenever they change; a failed copy is logged and ignored because widgets are optional. Timers started by a widget are saved natively and imported into the Active timers list the next time the app opens or returns to the foreground, so they can be seen and cancelled there.
+
+## Plain launch screen
+
+Expo's template splash (a grey grid with circles on white) showed on every launch and ignored dark mode. The launch screen is now only the app's background colour, light `#F4F6FB` or dark `#0F1220` with the phone, so the app opens without a flash. It is set with the `expo-splash-screen` config plugin in `app.json`, which needs a native rebuild. The plugin insists on an image, so `assets/splash-transparent.png` is a 1x1 transparent pixel. If the background colours in `src/ui/theme.ts` change, change them in `app.json` too.
+
+## App icon
+
+The icon is a white stopwatch on the theme's indigo (`#3949AB`), replacing Expo's default chevron. It is an Android adaptive icon: the indigo is a plain `backgroundColor` in `app.json` (no background image), `assets/android-icon-foreground.png` is the glyph kept inside the safe zone so no launcher mask crops it, and the same glyph is the monochrome image for themed icons. Changing the icon needs `npx expo prebuild --platform android --no-install` and a rebuild.

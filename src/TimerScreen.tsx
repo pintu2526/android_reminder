@@ -8,7 +8,12 @@ import {
   View,
 } from 'react-native';
 
-import { cancelTimer, scheduleTimer, ScheduledTimer } from './alarms';
+import {
+  cancelTimer,
+  scheduleTimer,
+  ScheduledTimer,
+  syncWidgetPresets,
+} from './alarms';
 import ActiveTimersList from './ActiveTimersList';
 import AlarmPermissionsModal from './AlarmPermissionsModal';
 import { canSubtractMinute } from './minutes';
@@ -54,7 +59,10 @@ export default function TimerScreen() {
 
   useEffect(() => {
     loadPresets()
-      .then(setPresets)
+      .then((loaded) => {
+        setPresets(loaded);
+        syncWidgetPresets(loaded);
+      })
       .catch((error) => console.error('Could not load presets', error));
     return () => clearTimeout(closeTimeout.current);
   }, []);
@@ -77,6 +85,7 @@ export default function TimerScreen() {
 
   async function updatePresets(next: Preset[]) {
     setPresets(next);
+    syncWidgetPresets(next);
     try {
       await savePresets(next);
     } catch (error) {

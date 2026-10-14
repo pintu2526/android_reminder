@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="alarmring_widget_label">Quick timer</string>
+  <string name="alarmring_widget_description">Tap to start a preset timer without opening the app.</string>
+  <string name="alarmring_widget_pick_preset">Choose a preset</string>
+  <string name="alarmring_widget_no_presets">Add a preset with a default time in the app first.</string>
+  <string name="alarmring_widget_already_started">%1$s already started</string>
+  <string name="alarmring_widget_removed">Preset removed</string>
+  <string name="alarmring_widget_notifications_off">Turn on Notifications for Quick Reminder so you can stop the alarm.</string>
+</resources>

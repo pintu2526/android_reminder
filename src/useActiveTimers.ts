@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
+import { takeWidgetTimers } from './alarms';
 import { loadTimers, saveTimers, StoredTimer } from './storage';
 
 // Timers that have rung are dropped: the ring screen's Stop button lives in
@@ -42,16 +43,25 @@ export function useActiveTimers() {
     if (pending.length !== latest.current.length) update(pending);
   }, [update]);
 
+  const importWidgetTimers = useCallback(() => {
+    const fromWidgets = stillPending(takeWidgetTimers());
+    if (fromWidgets.length > 0)
+      update(mergeTimers(fromWidgets, latest.current));
+  }, [update]);
+
   useEffect(() => {
+    importWidgetTimers();
     // Merge, so a timer added before the load finished is not lost.
     loadTimers()
       .then((saved) => update(mergeTimers(saved, latest.current)))
       .catch((error) => console.error('Could not load timers', error));
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') dropFinished();
+      if (state !== 'active') return;
+      dropFinished();
+      importWidgetTimers();
     });
     return () => subscription.remove();
-  }, [update, dropFinished]);
+  }, [update, dropFinished, importWidgetTimers]);
 
   useEffect(() => {
     if (timers.length === 0) return;
