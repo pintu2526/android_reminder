@@ -17,13 +17,6 @@
       "package": "com.pintu.quickreminder",
       "permissions": ["SCHEDULE_EXACT_ALARM", "POST_NOTIFICATIONS"]
     },
-    "plugins": [
-      [
-        "expo-notifications",
-        {
-          "defaultChannel": "timers"
-        }
-      ]
-    ]
+    "plugins": ["expo-notifications"]
   }
 }

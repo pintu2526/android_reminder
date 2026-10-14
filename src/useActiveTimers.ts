@@ -1,0 +1,55 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
+
+import { loadTimers, saveTimers, StoredTimer } from './storage';
+
+// Timers that have rung are dropped: the ring screen's Stop button lives in
+// native code, so JavaScript only knows a timer is over once its time has passed.
+export function stillPending(
+  timers: StoredTimer[],
+  now = Date.now(),
+): StoredTimer[] {
+  return timers.filter((timer) => timer.ringAt > now);
+}
+
+export function useActiveTimers() {
+  const [timers, setTimers] = useState<StoredTimer[]>([]);
+  const latest = useRef<StoredTimer[]>([]);
+
+  const update = useCallback((next: StoredTimer[]) => {
+    latest.current = next;
+    setTimers(next);
+    saveTimers(next).catch((error) =>
+      console.error('Could not save timers', error),
+    );
+  }, []);
+
+  const dropFinished = useCallback(() => {
+    const pending = stillPending(latest.current);
+    if (pending.length !== latest.current.length) update(pending);
+  }, [update]);
+
+  useEffect(() => {
+    // Merge, so a timer added before the load finished is not lost.
+    loadTimers()
+      .then((saved) => update([...stillPending(saved), ...latest.current]))
+      .catch((error) => console.error('Could not load timers', error));
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') dropFinished();
+    });
+    return () => subscription.remove();
+  }, [update, dropFinished]);
+
+  useEffect(() => {
+    if (timers.length === 0) return;
+    const nextRing = Math.min(...timers.map((timer) => timer.ringAt));
+    const timeout = setTimeout(dropFinished, nextRing - Date.now() + 1000);
+    return () => clearTimeout(timeout);
+  }, [timers, dropFinished]);
+
+  const addTimer = (timer: StoredTimer) => update([...latest.current, timer]);
+  const removeTimer = (id: string) =>
+    update(latest.current.filter((timer) => timer.id !== id));
+
+  return { timers, addTimer, removeTimer };
+}
